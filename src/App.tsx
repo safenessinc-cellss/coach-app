@@ -146,7 +146,7 @@ export default function App() {
             <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsProfileModalOpen(true)}>
               <div className="w-9 h-9 rounded-full border-2 border-red-600 overflow-hidden bg-white/5 group-hover:scale-110 transition-transform">
                  <img 
-                   src={profile.photoUrl || '/images/logo-robert-teran.png'} 
+                   src="/logo-robert-teran.png" 
                    alt={profile.name}
                    className="w-full h-full object-cover"
                  />
@@ -239,7 +239,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* PERFIL SECTION - con imagen local */}
+        {/* PERFIL SECTION - con 12.jpeg como foto principal */}
         <section id="about" className="py-24 relative z-10 bg-black/40 backdrop-blur-md border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
@@ -252,7 +252,7 @@ export default function App() {
                 >
                   <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/10 relative">
                     <img 
-                      src={profile.photoUrl || '/images/logo-robert-teran.png'} 
+                      src="/images/12.jpeg"
                       alt={profile.name}
                       className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
                     />
@@ -309,7 +309,7 @@ export default function App() {
                     <div className="flex -space-x-2">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="w-8 h-8 rounded-full border-2 border-black overflow-hidden">
-                          <img src={`/images/logo-robert-teran.png`} alt="Client" />
+                          <img src="/logo-robert-teran.png" alt="Client" />
                         </div>
                       ))}
                     </div>
@@ -323,7 +323,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* TRAYECTORIA PROFESIONAL */}
+        {/* TRAYECTORIA PROFESIONAL - con 10.jpeg en lugar de logo-robert-teran.png */}
         <section className="py-20 bg-black/60 relative z-10 border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -537,7 +537,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* TESTIMONIALS SECTION */}
+        {/* TESTIMONIALS SECTION - usando logo-robert-teran.png como avatar de clientes */}
         <section id="testimonials" className="py-24 relative z-10 bg-black/60 backdrop-blur-md border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="text-center mb-16">
@@ -567,7 +567,7 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <img 
-                        src={`/images/logo-robert-teran.png`} 
+                        src="/logo-robert-teran.png" 
                         alt={testimonial.name} 
                         loading="lazy" 
                         decoding="async"
@@ -637,7 +637,7 @@ export default function App() {
                   <>
                     <div className="w-full md:w-2/5 relative h-64 md:h-auto overflow-hidden">
                       <img 
-                        src={profile.photoUrl || '/images/logo-robert-teran.png'} 
+                        src="/images/12.jpeg" 
                         alt={profile.name}
                         className="w-full h-full object-cover"
                       />
@@ -770,7 +770,7 @@ export default function App() {
                 
                 <div className="flex items-center gap-4 mb-8">
                   <img 
-                    src={`/images/logo-robert-teran.png`} 
+                    src="/logo-robert-teran.png" 
                     alt={selectedTestimonial.name} 
                     className="w-16 h-16 rounded-full bg-white/5 border border-white/10 object-cover"
                   />
