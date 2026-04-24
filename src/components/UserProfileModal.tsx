@@ -48,11 +48,10 @@ export default function UserProfileModal({ isOpen, onClose, data }: UserProfileM
               {/* Avatar */}
               <div className="relative inline-block">
                 <div className="w-32 h-32 rounded-full border-4 border-[#0a0a0a] overflow-hidden shadow-2xl bg-[#151515]">
-                  <img 
-                    src={profile.photoUrl || undefined} 
-                    alt={profile.name}
-                    className="w-full h-full object-cover"
-                  />
+                 <img 
+  src={profile.photoUrl || '/images/12.jpeg'} 
+  alt={profile.name}
+/>
                 </div>
                 <div className="absolute bottom-2 right-2 bg-amber-500 text-black p-1.5 rounded-full shadow-lg border-2 border-[#0a0a0a]">
                   <ShieldCheck className="w-4 h-4" />
