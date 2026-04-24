@@ -145,12 +145,17 @@ export default function App() {
           <div className="glass rounded-full px-4 md:px-6 py-3 flex justify-between items-center border border-white/10">
             <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsProfileModalOpen(true)}>
               <div className="w-9 h-9 rounded-full border-2 border-red-600 overflow-hidden bg-white/5 group-hover:scale-110 transition-transform">
-                 <img 
-                   src="/logo-robert-teran.png" 
-                   alt={profile.name}
-                   className="w-full h-full object-cover"
-                 />
-              </div>
+                // Navbar - foto de perfil
+<img src="/images/logo-robert-teran.png" alt={profile.name} />
+
+// Trayectoria - fotos de clientes
+<img src="/images/logo-robert-teran.png" alt="Client" />
+
+// Testimonios - avatar de clientes
+<img src="/images/logo-robert-teran.png" alt={testimonial.name} />
+
+// Modal de testimonio
+<img src="/images/logo-robert-teran.png" alt={selectedTestimonial.name} />
               <span className="font-semibold tracking-tighter hidden sm:block uppercase">
                 {profile.name}
               </span>
