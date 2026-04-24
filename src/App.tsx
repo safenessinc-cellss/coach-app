@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldCheck, Users, Globe, Linkedin, Mail, Award, Network, Workflow, FileCheck, Activity, CheckCircle2, Menu, X, Brain, BarChart3, ShieldAlert, LineChart, Rocket, ClipboardCheck, Briefcase, Map, Quote, ArrowRight, Image as ImageIcon } from 'lucide-react';
@@ -54,11 +55,9 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    // Selección aleatoria del fondo corporativo usando imágenes locales
     const randomIndex = Math.floor(Math.random() * corporateBackgrounds.length);
     setBgImage(corporateBackgrounds[randomIndex]);
 
-    // Simulate data fetching
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1500);
@@ -145,17 +144,12 @@ export default function App() {
           <div className="glass rounded-full px-4 md:px-6 py-3 flex justify-between items-center border border-white/10">
             <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsProfileModalOpen(true)}>
               <div className="w-9 h-9 rounded-full border-2 border-red-600 overflow-hidden bg-white/5 group-hover:scale-110 transition-transform">
-                // Navbar - foto de perfil
-<img src="/images/logo-robert-teran.png" alt={profile.name} />
-
-// Trayectoria - fotos de clientes
-<img src="/images/logo-robert-teran.png" alt="Client" />
-
-// Testimonios - avatar de clientes
-<img src="/images/logo-robert-teran.png" alt={testimonial.name} />
-
-// Modal de testimonio
-<img src="/images/logo-robert-teran.png" alt={selectedTestimonial.name} />
+                <img 
+                  src="/images/logo-robert-teran.png" 
+                  alt={profile.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <span className="font-semibold tracking-tighter hidden sm:block uppercase">
                 {profile.name}
               </span>
@@ -244,7 +238,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* PERFIL SECTION - con 12.jpeg como foto principal */}
+        {/* PERFIL SECTION */}
         <section id="about" className="py-24 relative z-10 bg-black/40 backdrop-blur-md border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
@@ -314,7 +308,7 @@ export default function App() {
                     <div className="flex -space-x-2">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="w-8 h-8 rounded-full border-2 border-black overflow-hidden">
-                          <img src="/logo-robert-teran.png" alt="Client" />
+                          <img src="/images/logo-robert-teran.png" alt="Client" />
                         </div>
                       ))}
                     </div>
@@ -328,7 +322,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* TRAYECTORIA PROFESIONAL - con 10.jpeg en lugar de logo-robert-teran.png */}
+        {/* TRAYECTORIA PROFESIONAL */}
         <section className="py-20 bg-black/60 relative z-10 border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -430,7 +424,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* PROCESS MAPPING SECTION - con imagen local */}
+        {/* PROCESS MAPPING SECTION */}
         <section id="procesos" className="py-24 relative z-10 bg-black/60 backdrop-blur-md border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="text-center mb-16">
@@ -442,7 +436,6 @@ export default function App() {
                 Representación visual de la interacción de los procesos del Sistema de Gestión de Calidad.
               </p>
               
-              {/* ISO Image Component */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -494,7 +487,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* CERTIFICATIONS SECTION - con imágenes locales */}
+        {/* CERTIFICATIONS SECTION */}
         <section id="certifications" className="py-24 relative z-10 bg-black/40 backdrop-blur-md border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="text-center mb-16">
@@ -542,7 +535,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* TESTIMONIALS SECTION - usando logo-robert-teran.png como avatar de clientes */}
+        {/* TESTIMONIALS SECTION */}
         <section id="testimonials" className="py-24 relative z-10 bg-black/60 backdrop-blur-md border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="text-center mb-16">
@@ -572,7 +565,7 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <img 
-                        src="/logo-robert-teran.png" 
+                        src="/images/logo-robert-teran.png" 
                         alt={testimonial.name} 
                         loading="lazy" 
                         decoding="async"
@@ -775,7 +768,7 @@ export default function App() {
                 
                 <div className="flex items-center gap-4 mb-8">
                   <img 
-                    src="/logo-robert-teran.png" 
+                    src="/images/logo-robert-teran.png" 
                     alt={selectedTestimonial.name} 
                     className="w-16 h-16 rounded-full bg-white/5 border border-white/10 object-cover"
                   />
