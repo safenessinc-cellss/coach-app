@@ -1,6 +1,6 @@
 import https from 'https';
 
-https.get('https://coach2-kappa.vercel.app/index.html', (resp) => {
+https.get('https://coach2-kappa.vercel.app/admin', (resp) => {
   console.log("Status: ", resp.statusCode);
   console.log("Headers: ", resp.headers);
   let data = '';
