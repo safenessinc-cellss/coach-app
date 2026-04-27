@@ -1,517 +1,262 @@
-import { useState, useEffect, useMemo } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import { onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
-import { motion } from 'motion/react';
-import { Calendar, Clock, User, Mail, Building, FileText, CheckCircle, XCircle, Trash2, Loader2, LogOut, ShieldAlert, Search, Filter } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import ImageRegistryManager from './ImageRegistryManager';
-import ProfileEditor from './ProfileEditor';
+import { useState, useEffect } from 'react';
 
-interface Consultation {
-  id: string;
-  name: string;
-  email: string;
-  company?: string;
-  date: string;
-  topic: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
-  createdAt: any;
+// Lista de logos/avatares aleatorios
+const LOGOS = [
+  'https://randomuser.me/api/portraits/men/1.jpg',
+  'https://randomuser.me/api/portraits/women/2.jpg',
+  'https://randomuser.me/api/portraits/men/3.jpg',
+  'https://randomuser.me/api/portraits/women/4.jpg',
+  'https://randomuser.me/api/portraits/men/5.jpg',
+  'https://randomuser.me/api/portraits/men/32.jpg',
+  'https://randomuser.me/api/portraits/women/68.jpg',
+  'https://randomuser.me/api/portraits/men/45.jpg',
+  'https://randomuser.me/api/portraits/women/91.jpg',
+  'https://randomuser.me/api/portraits/men/75.jpg',
+  'https://randomuser.me/api/portraits/women/22.jpg',
+  'https://randomuser.me/api/portraits/men/88.jpg',
+];
+
+// Lista de logos alternativos por si fallan las URLs
+const FALLBACK_LOGOS = [
+  'https://ui-avatars.com/api/?background=6366f1&color=fff&bold=true&size=120&name=CM',
+  'https://ui-avatars.com/api/?background=ec4899&color=fff&bold=true&size=120&name=AS',
+  'https://ui-avatars.com/api/?background=14b8a6&color=fff&bold=true&size=120&name=RG',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=coach1',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=coach2',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=coach3',
+];
+
+// Definir el tipo para los testimonios
+interface Testimonio {
+  nombre: string;
+  cargo: string;
+  texto: string;
+  caso?: string;
 }
 
-export default function AdminPanel() {
-  const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [is2FAVerified, setIs2FAVerified] = useState(false);
-  const [pinInput, setPinInput] = useState('');
-  const [authChecking, setAuthChecking] = useState(true);
-  
-  // Tab State
-  const [activeTab, setActiveTab] = useState<'crm' | 'registry' | 'profile'>('crm');
+function AdminPanel() {
+  const [logos, setLogos] = useState<string[]>([]);
+  const [logosFallback, setLogosFallback] = useState<boolean[]>([]);
 
-  // Search and Filter logic
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const testimonios: Testimonio[] = [
+    { 
+      nombre: "Carlos Mendoza", 
+      cargo: "CEO, TechLogistics", 
+      texto: "Su enfoque de coaching no solo mejoró nuestros procesos, sino que empoderó a todo nuestro equipo directivo. Un verdadero líder que inspira resultados tangibles.",
+      caso: "Ver caso completo"
+    },
+    { 
+      nombre: "Ana Silva", 
+      cargo: "Directora de Operaciones, GlobalCorp", 
+      texto: "El mapeo de procesos que implementó nos permitió identificar cuellos de botella que nos costaban miles de dólares al mes. Su experiencia es invaluable.",
+      caso: "Ver caso completo"
+    },
+    { 
+      nombre: "Roberto Gómez", 
+      cargo: "Gerente General, Industrias Alimenticias", 
+      texto: "La transformación digital que lideró incrementó nuestra eficiencia en un 40%. Un profesional excepcional que recomiendo sin dudar.",
+      caso: "Ver caso completo"
+    }
+  ];
 
-  const navigate = useNavigate();
+  // Función para asignar logos aleatorios
+  const asignarLogosAleatorios = () => {
+    const nuevosLogos = testimonios.map(() => 
+      LOGOS[Math.floor(Math.random() * LOGOS.length)]
+    );
+    setLogos(nuevosLogos);
+    // Resetear estado de fallback
+    setLogosFallback(new Array(testimonios.length).fill(false));
+  };
 
-  const ADMIN_EMAIL = 'safeness.c.a@gmail.com';
-  const MOCK_2FA_PIN = '550088';
+  // Función para manejar error de carga de imagen
+  const handleImageError = (index: number) => {
+    if (!logosFallback[index]) {
+      const nuevoFallback = [...logosFallback];
+      nuevoFallback[index] = true;
+      setLogosFallback(nuevoFallback);
+      
+      // Actualizar el logo con uno de fallback
+      const nuevosLogos = [...logos];
+      const fallbackIndex = Math.floor(Math.random() * FALLBACK_LOGOS.length);
+      nuevosLogos[index] = FALLBACK_LOGOS[fallbackIndex];
+      setLogos(nuevosLogos);
+    }
+  };
+
+  // Función para manejar el clic en "Ver caso"
+  const handleVerCaso = (testimonio: Testimonio) => {
+    console.log(`Ver caso de: ${testimonio.nombre}`);
+    // Aquí puedes agregar la lógica para mostrar el caso completo
+    // Por ejemplo: abrir un modal, navegar a otra página, etc.
+    alert(`Mostrando caso de éxito de ${testimonio.nombre}`);
+  };
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (currentUser && currentUser.email === ADMIN_EMAIL) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-        setIs2FAVerified(false);
-      }
-      setAuthChecking(false);
-    });
-
-    return () => unsubscribeAuth();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!isAdmin || !is2FAVerified) return;
-
-    try {
-      const q = query(collection(db, 'consultations'), orderBy('createdAt', 'desc'));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Consultation[];
-        setConsultations(data);
-        setLoading(false);
-      }, (error) => {
-        console.error("Error al obtener consultas:", error);
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } catch (e) {
-      console.error(e);
-      setLoading(false);
-    }
-  }, [isAdmin, is2FAVerified]);
-
-  const recordAudit = async (action: string, documentId: string, details: string) => {
-     try {
-       await addDoc(collection(db, 'audit_logs'), {
-         action,
-         documentId,
-         adminEmail: user?.email,
-         timestamp: serverTimestamp(),
-         details
-       });
-     } catch(e) {
-       console.error("Error logging audit:", e);
-     }
-  };
-
-  const simulateEmailNotification = async (to: string, subject: string, body: string) => {
-     try {
-       await addDoc(collection(db, 'mail'), {
-         to,
-         message: {
-           subject,
-           html: body
-         }
-       });
-       console.log("Email request queued for: ", to);
-     } catch(e) {
-       console.error("Error queuing email:", e);
-     }
-  }
-
-  const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-    try {
-      if (window.innerWidth < 768) {
-         await signInWithRedirect(auth, provider);
-      } else {
-         await signInWithPopup(auth, provider);
-      }
-    } catch (error: any) {
-      console.error("Error al iniciar sesión:", error);
-      alert('Error de inicio de sesión: ' + error.message);
-    }
-  };
-
-  const handleStatusChange = async (consultation: Consultation, newStatus: 'confirmed' | 'cancelled') => {
-    try {
-      const ref = doc(db, 'consultations', consultation.id);
-      await updateDoc(ref, { status: newStatus });
-      
-      // Grabar en Auditoría
-      await recordAudit('STATUS_CHANGE', consultation.id, `Status changed from ${consultation.status} to ${newStatus}`);
-      
-      // Simular notificación por email
-      await simulateEmailNotification(
-         consultation.email, 
-         `Actualización de tu consulta: ${newStatus === 'confirmed' ? 'Confirmada' : 'Cancelada'}`, 
-         `<p>Hola ${consultation.name},</p><p>Tu solicitud de consultoría para el ${new Date(consultation.date).toLocaleDateString()} ahora ha sido <strong>${newStatus === 'confirmed' ? 'Confirmada' : 'Cancelada'}</strong>.</p>`
-      );
-      
-    } catch (error) {
-      console.error("Error actualizando estado:", error);
-      alert("Hubo un error al actualizar. Recuerda revisar las reglas de Firestore.");
-    }
-  };
-
-  const handleDelete = async (consultation: Consultation) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta solicitud?')) {
-      try {
-        await deleteDoc(doc(db, 'consultations', consultation.id));
-        await recordAudit('DELETE', consultation.id, `Deleted consultation for ${consultation.name}`);
-      } catch (error) {
-        console.error("Error eliminando:", error);
-      }
-    }
-  }
-
-  // Filter Data
-  const filteredConsultations = useMemo(() => {
-    return consultations.filter(c => {
-      const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          c.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          c.topic.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = statusFilter === 'all' || c.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [consultations, searchTerm, statusFilter]);
-
-  // Chart Data
-  const chartData = useMemo(() => {
-    const pending = consultations.filter(c => c.status === 'pending').length;
-    const confirmed = consultations.filter(c => c.status === 'confirmed').length;
-    const cancelled = consultations.filter(c => c.status === 'cancelled').length;
-    return [
-      { name: 'Pendientes', value: pending, color: '#EAB308' },
-      { name: 'Confirmadas', value: confirmed, color: '#22C55E' },
-      { name: 'Canceladas', value: cancelled, color: '#EF4444' }
-    ].filter(d => d.value > 0);
-  }, [consultations]);
-
-  if (authChecking) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-white text-center">
-        <div className="glass p-12 rounded-3xl max-w-sm w-full border border-white/5 space-y-6">
-          <ShieldAlert className="w-16 h-16 text-red-500 mx-auto" />
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Acceso Restringido</h1>
-            <p className="text-gray-400 text-sm">Inicia sesión como administrador para acceder al CRM.</p>
-          </div>
-          <button 
-            onClick={handleLogin}
-            className="w-full bg-white text-black font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition"
-          >
-            Iniciar Sesión con Google
-          </button>
-          <Link to="/" className="block mt-4 text-xs text-gray-500 hover:text-white transition">Volver a la Web</Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-white text-center">
-        <div className="glass p-12 rounded-3xl max-w-sm w-full border border-red-500/20 bg-red-500/5 space-y-6">
-          <XCircle className="w-16 h-16 text-red-500 mx-auto" />
-          <div>
-            <h1 className="text-2xl font-bold mb-2">No tienes permiso</h1>
-            <p className="text-gray-400 text-sm">Tu cuenta de Google ({user.email}) no está autorizada para acceder a este panel.</p>
-          </div>
-          <button 
-            onClick={() => auth.signOut()}
-            className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-red-700 transition"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!is2FAVerified) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-white text-center">
-        <div className="glass p-12 rounded-3xl max-w-sm w-full border border-white/5 space-y-6">
-          <ShieldAlert className="w-16 h-16 text-blue-500 mx-auto" />
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Autenticación 2FA</h1>
-            <p className="text-gray-400 text-xs">Por razones de seguridad, ingresa tu PIN de Administrador (550088).</p>
-          </div>
-          <input 
-            type="password" 
-            placeholder="Introduce el PIN de 6 dígitos"
-            maxLength={6}
-            value={pinInput}
-            onChange={(e) => setPinInput(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-center text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-blue-500 transition-colors"
-          />
-          <button 
-            onClick={() => {
-              if (pinInput === MOCK_2FA_PIN) setIs2FAVerified(true);
-              else alert('PIN Incorrecto');
-            }}
-            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition"
-          >
-            Verificar Identidad
-          </button>
-          <button onClick={() => auth.signOut()} className="text-xs text-gray-500 hover:text-white mt-4">Cancelar y Salir</button>
-        </div>
-      </div>
-    );
-  }
+    asignarLogosAleatorios();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12 font-sans selection:bg-red-500/30">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Panel de Administración</h1>
-            <p className="text-gray-400">Gestiona tus solicitudes de consultoría</p>
-          </div>
-          <div className="flex gap-4">
-            <Link to="/" className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition text-sm font-medium">
-              Volver a la Web
-            </Link>
-            <button 
-              onClick={() => auth.signOut()}
-              className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition flex items-center gap-2 text-sm font-medium"
-            >
-              <LogOut className="w-4 h-4" /> Cerrar Sesión
-            </button>
-          </div>
-        </div>
-
-        {/* TAB NAVIGATION */}
-        <div className="flex gap-4 mb-8 border-b border-white/10 pb-4">
-          <button 
-            onClick={() => setActiveTab('crm')}
-            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'crm' ? 'bg-white text-black' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-          >
-            Gestión CRM
-          </button>
-          <button 
-            onClick={() => setActiveTab('registry')}
-            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'registry' ? 'bg-white text-black' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-          >
-            Gestor de Activos ISO
-          </button>
-          <button 
-            onClick={() => setActiveTab('profile')}
-            className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white text-black' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-          >
-            Configuración de Perfil
-          </button>
-        </div>
-
-        {activeTab === 'registry' ? (
-          <ImageRegistryManager />
-        ) : activeTab === 'profile' ? (
-          <ProfileEditor />
-        ) : (
-          <>
-            {/* DASHBOARD SUMMARY (CHARTS & STATS) */}
-            {!loading && consultations.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10">
-            {/* STATS COL */}
-            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass p-6 rounded-2xl border border-white/5 flex flex-col justify-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-2">
-                  <Calendar className="w-6 h-6 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Solicitudes</p>
-                  <p className="text-4xl font-extrabold text-white">{consultations.length}</p>
-                </div>
-              </div>
-              <div className="glass p-6 rounded-2xl border border-white/5 flex flex-col justify-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mb-2">
-                  <Clock className="w-6 h-6 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Pendientes</p>
-                  <p className="text-4xl font-extrabold text-white">{consultations.filter(c => c.status === 'pending').length}</p>
-                </div>
-              </div>
-              <div className="glass p-6 rounded-2xl border border-white/5 flex flex-col justify-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mb-2">
-                  <CheckCircle className="w-6 h-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Confirmadas</p>
-                  <p className="text-4xl font-extrabold text-white">{consultations.filter(c => c.status === 'confirmed').length}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* CHART COL */}
-            <div className="glass p-6 rounded-2xl border border-white/5 flex flex-col items-center justify-center h-[200px] lg:h-auto">
-              <p className="text-gray-400 text-xs font-bold uppercase tracking-wider w-full text-center mb-2">Distribución de Estados</p>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#111', borderColor: '#333', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* CONTROLES BÚSQUEDA Y FILTRO */}
-        {!loading && consultations.length > 0 && (
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input 
-                type="text" 
-                placeholder="Buscar por nombre, email o asunto..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
+    <div className="admin-panel-container" style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.title}>✨ Testimonios de Clientes ✨</h2>
+        <button 
+          onClick={asignarLogosAleatorios} 
+          style={styles.refreshButton}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          🎲 Cambiar Logos Aleatorios
+        </button>
+      </div>
+      
+      <div className="testimonios-grid" style={styles.grid}>
+        {testimonios.map((item, index) => (
+          <div key={index} className="testimonial-card" style={styles.card}>
+            <div style={styles.logoContainer}>
+              <img 
+                src={logos[index] || LOGOS[0]} 
+                alt={item.nombre}
+                style={styles.logo}
+                onError={() => handleImageError(index)}
               />
             </div>
-            <div className="relative min-w-[200px]">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors appearance-none cursor-pointer"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="pending">Pendientes</option>
-                <option value="confirmed">Confirmadas</option>
-                <option value="cancelled">Canceladas</option>
-              </select>
-            </div>
+            
+            <h3 style={styles.name}>{item.nombre}</h3>
+            <p style={styles.role}>{item.cargo}</p>
+            
+            <p style={styles.testimonialText}>
+              "{item.texto}"
+            </p>
+            
+            <button 
+              onClick={() => handleVerCaso(item)}
+              style={styles.casoButton}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#4338ca';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#4f46e5';
+              }}
+            >
+              {item.caso || 'Ver caso'} →
+            </button>
           </div>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-             <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
-          </div>
-        ) : consultations.length === 0 ? (
-          <div className="glass p-12 rounded-3xl text-center border border-white/5">
-            <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">No hay solicitudes aún</h3>
-            <p className="text-gray-400">Las nuevas reservas de consultoría aparecerán aquí.</p>
-          </div>
-        ) : filteredConsultations.length === 0 ? (
-          <div className="glass p-12 rounded-3xl text-center border border-white/5">
-            <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">No se encontraron resultados</h3>
-            <p className="text-gray-400">Intenta ajustar tu búsqueda o filtros.</p>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {filteredConsultations.map((consultation, index) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                key={consultation.id} 
-                className="glass p-6 rounded-2xl border border-white/5 flex flex-col lg:flex-row gap-6 relative overflow-hidden"
-              >
-                {/* Indicador de estado lateral */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                  consultation.status === 'pending' ? 'bg-yellow-500' :
-                  consultation.status === 'confirmed' ? 'bg-green-500' : 'bg-red-500'
-                }`}></div>
-
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pl-2">
-                  <div className="space-y-1 mt-2">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Cliente</p>
-                    <p className="font-bold flex items-center gap-2"><User className="w-4 h-4 text-gray-400"/> {consultation.name}</p>
-                    {consultation.company && (
-                      <p className="text-sm text-gray-400 flex items-center gap-2"><Building className="w-4 h-4"/> {consultation.company}</p>
-                    )}
-                    <a href={`mailto:${consultation.email}`} className="text-sm text-red-400 hover:text-red-300 flex items-center gap-2">
-                      <Mail className="w-4 h-4"/> {consultation.email}
-                    </a>
-                  </div>
-
-                  <div className="space-y-1 mt-2">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Fecha Solicitada</p>
-                    <div className="bg-white/5 rounded-lg p-3 inline-block">
-                      <p className="font-mono font-bold text-lg text-white">
-                        {new Date(consultation.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
-                      <p className="text-sm text-gray-400 flex items-center gap-2 mt-1">
-                        <Clock className="w-4 h-4" />
-                        {new Date(consultation.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 lg:col-span-2 mt-2">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Motivo de la consulta</p>
-                    <div className="bg-black/40 rounded-lg p-4 border border-white/5 h-full">
-                      <p className="flex items-start gap-2 text-sm text-gray-300">
-                        <FileText className="w-4 h-4 shrink-0 mt-0.5 text-gray-500" />
-                        {consultation.topic}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-row lg:flex-col items-center lg:justify-center gap-3 lg:border-l lg:border-white/10 lg:pl-6">
-                  {consultation.status === 'pending' && (
-                    <>
-                      <button 
-                        onClick={() => handleStatusChange(consultation, 'confirmed')}
-                        className="flex-1 lg:w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle className="w-4 h-4" /> Aprobar
-                      </button>
-                      <button 
-                        onClick={() => handleStatusChange(consultation, 'cancelled')}
-                        className="flex-1 lg:w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
-                      >
-                        <XCircle className="w-4 h-4" /> Rechazar
-                      </button>
-                    </>
-                  )}
-                  {consultation.status === 'confirmed' && (
-                    <div className="flex-1 lg:w-full bg-green-500/10 text-green-500 border border-green-500/20 px-4 py-2 rounded-lg text-sm font-semibold text-center flex items-center justify-center gap-2">
-                      <CheckCircle className="w-4 h-4" /> Confirmado
-                    </div>
-                  )}
-                  {consultation.status === 'cancelled' && (
-                    <div className="flex-1 lg:w-full bg-gray-500/10 text-gray-400 border border-gray-500/20 px-4 py-2 rounded-lg text-sm font-semibold text-center flex items-center justify-center gap-2">
-                      <XCircle className="w-4 h-4" /> Rechazado
-                    </div>
-                  )}
-                  <button 
-                    onClick={() => handleDelete(consultation)}
-                    className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition lg:mt-2"
-                    title="Eliminar registro"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-          </>
-        )}
+        ))}
       </div>
     </div>
   );
 }
+
+// Estilos en línea (puedes moverlos a un archivo CSS si prefieres)
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '40px 20px',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '40px',
+    flexWrap: 'wrap',
+    gap: '20px',
+  },
+  title: {
+    fontSize: '2rem',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    margin: 0,
+  },
+  refreshButton: {
+    backgroundColor: '#4f46e5',
+    color: 'white',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: '30px',
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    padding: '30px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+    textAlign: 'center',
+  },
+  logoContainer: {
+    width: '100px',
+    height: '100px',
+    margin: '0 auto 20px',
+    borderRadius: '50%',
+    overflow: 'hidden',
+    border: '3px solid #4f46e5',
+    boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  name: {
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    margin: '10px 0 5px',
+  },
+  role: {
+    fontSize: '0.875rem',
+    color: '#4f46e5',
+    fontWeight: '600',
+    marginBottom: '15px',
+  },
+  testimonialText: {
+    fontSize: '0.95rem',
+    lineHeight: '1.6',
+    color: '#4b5563',
+    fontStyle: 'italic',
+    marginBottom: '20px',
+    textAlign: 'center',
+  },
+  casoButton: {
+    backgroundColor: '#4f46e5',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '8px',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.3s ease',
+    width: '100%',
+  },
+};
+
+// Añadir efecto hover con CSS (opcional)
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  .testimonial-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  }
+`;
+document.head.appendChild(styleSheet);
+
+export default AdminPanel;
