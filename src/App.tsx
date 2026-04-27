@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldCheck, Users, Globe, Linkedin, Mail, Award, Network, Workflow, FileCheck, Activity, CheckCircle2, Menu, X, Brain, BarChart3, ShieldAlert, LineChart, Rocket, ClipboardCheck, Briefcase, Map, Quote, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { ShieldCheck, Users, Globe, Linkedin, Mail, Award, Network, Workflow, FileCheck, Activity, CheckCircle2, Menu, X, Brain, BarChart3, ShieldAlert, LineChart, Rocket, ClipboardCheck, Briefcase, Map, Quote, ArrowRight, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import dataES from './data/es.json';
@@ -14,7 +13,7 @@ import UserProfileModal from './components/UserProfileModal';
 import { useProfileSettings } from './data/useProfileSettings';
 
 const iconMap: Record<string, any> = {
-  ShieldCheck, Network, Workflow, Brain, BarChart3, ShieldAlert, LineChart, Rocket, Award, ClipboardCheck, Map
+  ShieldCheck, Users, Network, Workflow, Brain, BarChart3, ShieldAlert, LineChart, Rocket, Award, ClipboardCheck, Map
 };
 
 const allData = {
@@ -41,6 +40,51 @@ const certificationImages = {
   'ISO/IEC 42001:2023': '/images/estructura.png',
 };
 
+// ========== LISTA DE LOGOS/AVATARES ALEATORIOS PARA TESTIMONIOS ==========
+const TESTIMONIAL_LOGOS = [
+  // Hombres
+  'https://randomuser.me/api/portraits/men/1.jpg',
+  'https://randomuser.me/api/portraits/men/3.jpg',
+  'https://randomuser.me/api/portraits/men/5.jpg',
+  'https://randomuser.me/api/portraits/men/32.jpg',
+  'https://randomuser.me/api/portraits/men/45.jpg',
+  'https://randomuser.me/api/portraits/men/75.jpg',
+  'https://randomuser.me/api/portraits/men/88.jpg',
+  'https://randomuser.me/api/portraits/men/12.jpg',
+  'https://randomuser.me/api/portraits/men/22.jpg',
+  'https://randomuser.me/api/portraits/men/41.jpg',
+  'https://randomuser.me/api/portraits/men/62.jpg',
+  'https://randomuser.me/api/portraits/men/79.jpg',
+  'https://randomuser.me/api/portraits/men/90.jpg',
+  'https://randomuser.me/api/portraits/men/95.jpg',
+  // Mujeres
+  'https://randomuser.me/api/portraits/women/2.jpg',
+  'https://randomuser.me/api/portraits/women/4.jpg',
+  'https://randomuser.me/api/portraits/women/68.jpg',
+  'https://randomuser.me/api/portraits/women/91.jpg',
+  'https://randomuser.me/api/portraits/women/14.jpg',
+  'https://randomuser.me/api/portraits/women/28.jpg',
+  'https://randomuser.me/api/portraits/women/55.jpg',
+  'https://randomuser.me/api/portraits/women/63.jpg',
+  'https://randomuser.me/api/portraits/women/77.jpg',
+  'https://randomuser.me/api/portraits/women/89.jpg',
+  'https://randomuser.me/api/portraits/women/96.jpg',
+  // Avatares generados (fallback)
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial1',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial2',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial3',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial4',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial5',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial6',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial7',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=testimonial8',
+];
+
+// Función para obtener un logo aleatorio
+const getRandomLogo = () => {
+  return TESTIMONIAL_LOGOS[Math.floor(Math.random() * TESTIMONIAL_LOGOS.length)];
+};
+
 export default function App() {
   const { t, i18n } = useTranslation();
   const data = allData[i18n.language as keyof typeof allData] || dataES;
@@ -53,6 +97,9 @@ export default function App() {
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedTestimonial, setSelectedTestimonial] = useState<any>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  
+  // Estado para almacenar los logos aleatorios de cada testimonio
+  const [testimonialLogos, setTestimonialLogos] = useState<{ [key: number]: string }>({});
 
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * corporateBackgrounds.length);
@@ -63,6 +110,26 @@ export default function App() {
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Efecto para asignar logos aleatorios a cada testimonio
+  useEffect(() => {
+    if (data.testimonials && data.testimonials.length > 0) {
+      const logosMap: { [key: number]: string } = {};
+      data.testimonials.forEach((_, index) => {
+        logosMap[index] = getRandomLogo();
+      });
+      setTestimonialLogos(logosMap);
+    }
+  }, [data.testimonials, i18n.language]);
+
+  // Función para refrescar todos los logos de testimonios
+  const refreshTestimonialLogos = () => {
+    const logosMap: { [key: number]: string } = {};
+    data.testimonials.forEach((_, index) => {
+      logosMap[index] = getRandomLogo();
+    });
+    setTestimonialLogos(logosMap);
+  };
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -535,7 +602,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* TESTIMONIALS SECTION */}
+        {/* TESTIMONIALS SECTION - CON LOGOS ALEATORIOS */}
         <section id="testimonials" className="py-24 relative z-10 bg-black/60 backdrop-blur-md border-t border-white/5">
           <div className="container mx-auto max-w-6xl px-4">
             <div className="text-center mb-16">
@@ -543,6 +610,15 @@ export default function App() {
                 {t('testimonials.badge')}
               </span>
               <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">{t('testimonials.title')}</h2>
+              
+              {/* Botón para refrescar logos aleatorios */}
+              <button
+                onClick={refreshTestimonialLogos}
+                className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 rounded-full text-sm font-medium text-red-400 transition-all duration-300 hover:scale-105"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Cambiar logos aleatorios
+              </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -564,12 +640,17 @@ export default function App() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
+                      {/* Logo aleatorio para cada testimonio */}
                       <img 
-                        src="/images/logo-robert-teran.png" 
+                        src={testimonialLogos[idx] || getRandomLogo()} 
                         alt={testimonial.name} 
                         loading="lazy" 
                         decoding="async"
-                        className="w-12 h-12 rounded-full bg-white/5 border border-white/10 object-cover"
+                        className="w-12 h-12 rounded-full bg-white/5 border-2 border-red-500/50 object-cover"
+                        onError={(e) => {
+                          // Si la imagen falla, usar un avatar de dicebear como fallback
+                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${testimonial.name.replace(/\s/g, '')}`;
+                        }}
                       />
                       <div>
                         <h4 className="text-white font-bold">{testimonial.name}</h4>
@@ -768,9 +849,12 @@ export default function App() {
                 
                 <div className="flex items-center gap-4 mb-8">
                   <img 
-                    src="/images/logo-robert-teran.png" 
+                    src={testimonialLogos[data.testimonials.findIndex((t: any) => t.name === selectedTestimonial.name)] || getRandomLogo()} 
                     alt={selectedTestimonial.name} 
-                    className="w-16 h-16 rounded-full bg-white/5 border border-white/10 object-cover"
+                    className="w-16 h-16 rounded-full bg-white/5 border-2 border-red-500/50 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedTestimonial.name.replace(/\s/g, '')}`;
+                    }}
                   />
                   <div>
                     <h3 className="text-2xl font-bold text-white">{selectedTestimonial.name}</h3>
